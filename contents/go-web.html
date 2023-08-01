@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2023-08-01 Tue 06:06 -->
+<!-- 2023-08-01 Tue 06:48 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Writing web API's in Go</title>
@@ -201,40 +201,40 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org588fdd8">1. Source code</a></li>
-<li><a href="#org21bdd6f">2. Go web ecosystem</a></li>
-<li><a href="#orgfba10da">3. Basic routing in Go</a></li>
-<li><a href="#org0b3e1b8">4. What I prefer</a></li>
-<li><a href="#orgb7b8dc6">5. Better handler types</a></li>
-<li><a href="#orgc4038d6">6. Error handling</a></li>
+<li><a href="#org44d1cae">1. Source code</a></li>
+<li><a href="#org4e41be7">2. Go web ecosystem</a></li>
+<li><a href="#org168cfa2">3. Basic routing in Go</a></li>
+<li><a href="#org865164a">4. What I prefer</a></li>
+<li><a href="#org0116df6">5. Better handler types</a></li>
+<li><a href="#orgd07e546">6. Error handling</a></li>
 </ul>
 </div>
 </div>
 
-<div id="orgbab5bfa" class="figure">
-<p><img src="http:/images/golang.png" alt="golang.png" />
+<div id="org585f30a" class="figure">
+<p><img src="./images/golang.png" alt="golang.png" />
 </p>
 <p><span class="figure-number">Figure 1: </span>a gopher, apparently</p>
 </div>
 
-<div id="outline-container-org588fdd8" class="outline-2">
-<h2 id="org588fdd8"><span class="section-number-2">1.</span> Source code</h2>
+<div id="outline-container-org44d1cae" class="outline-2">
+<h2 id="org44d1cae"><span class="section-number-2">1.</span> Source code</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 <a href="https://github.com/garlic0x1/example-app">Here is an example of how I would build a JSON API in Go</a>
 </p>
 </div>
 </div>
-<div id="outline-container-org21bdd6f" class="outline-2">
-<h2 id="org21bdd6f"><span class="section-number-2">2.</span> Go web ecosystem</h2>
+<div id="outline-container-org4e41be7" class="outline-2">
+<h2 id="org4e41be7"><span class="section-number-2">2.</span> Go web ecosystem</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 Go comes with the net/http package which provides a fast and easy to use HTTP server.  There are frameworks like Gin that are nice but I find it to be needlessly verbose when writing a simple JSON API.  It also doesn&rsquo;t come with a declarative tree router like Clojure&rsquo;s Reitit or Rust&rsquo;s Axum, which I like because you can define all the endpoints on a server in one tree that you can view all on your screen at once.
 </p>
 </div>
 </div>
-<div id="outline-container-orgfba10da" class="outline-2">
-<h2 id="orgfba10da"><span class="section-number-2">3.</span> Basic routing in Go</h2>
+<div id="outline-container-org168cfa2" class="outline-2">
+<h2 id="org168cfa2"><span class="section-number-2">3.</span> Basic routing in Go</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 The basic way to do routing in Go is to use Mux (or whatever is still maintained).  It looks like this:
@@ -251,8 +251,8 @@ In this example we have to create a router, then use statements to append endpoi
 </p>
 </div>
 </div>
-<div id="outline-container-org0b3e1b8" class="outline-2">
-<h2 id="org0b3e1b8"><span class="section-number-2">4.</span> What I prefer</h2>
+<div id="outline-container-org865164a" class="outline-2">
+<h2 id="org865164a"><span class="section-number-2">4.</span> What I prefer</h2>
 <div class="outline-text-2" id="text-4">
 <p>
 Declaring routes like the above example gets unreadable very fast.  There is no way to quicky visually identify groups of endpoints or middlewares wrapping nodes.
@@ -281,8 +281,8 @@ While this isn&rsquo;t as pretty as it is in Clojure, we can still visually iden
 </p>
 </div>
 </div>
-<div id="outline-container-orgb7b8dc6" class="outline-2">
-<h2 id="orgb7b8dc6"><span class="section-number-2">5.</span> Better handler types</h2>
+<div id="outline-container-org0116df6" class="outline-2">
+<h2 id="org0116df6"><span class="section-number-2">5.</span> Better handler types</h2>
 <div class="outline-text-2" id="text-5">
 <p>
 As I mentioned before, its a lot harder to deal with handlers of the type func(http.ResponseWriter, *http.Request), because then we cant think of HTTP endpoints as functions.  Instead we should make a handler type that takes a Request, and returns values that are then written to a Response.
@@ -313,12 +313,12 @@ If we make our handler router special types that arent already serializable to J
 </p>
 </div>
 </div>
-<div id="outline-container-orgc4038d6" class="outline-2">
-<h2 id="orgc4038d6"><span class="section-number-2">6.</span> Error handling</h2>
+<div id="outline-container-orgd07e546" class="outline-2">
+<h2 id="orgd07e546"><span class="section-number-2">6.</span> Error handling</h2>
 <div class="outline-text-2" id="text-6">
 
-<div id="org43bfa20" class="figure">
-<p><img src="http:/images/errors.png" alt="errors.png" />
+<div id="orgc825199" class="figure">
+<p><img src="./images/errors.png" alt="errors.png" />
 </p>
 <p><span class="figure-number">Figure 2: </span>&gt;:(</p>
 </div>
@@ -332,7 +332,7 @@ Note that while it is commented out in the example code, error messages should b
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: garlic0x1</p>
-<p class="date">Created: 2023-08-01 Tue 06:06</p>
+<p class="date">Created: 2023-08-01 Tue 06:48</p>
 </div>
 </body>
 </html>

@@ -8,7 +8,7 @@ Hi, I am Garlic.  I am a programmer, mostly writing Go and Lisp and making web b
 
 #+CAPTION: nice campsite
 #+NAME: fig:bob-marshall
-[[https:/images/bob-marshall.jpg]]
+[[./images/bob-marshall.jpg]]
 * Contact
 - Email: garlic1@protonmail.com
 - [[https://github.com/garlic0x1][Github]]
@@ -16,4 +16,4 @@ Hi, I am Garlic.  I am a programmer, mostly writing Go and Lisp and making web b
 - [[https://x.com/garlic0ne][Twitter]]
 
 
-[[http:/images/css3.gif]]
+[[./images/css3.gif]]
