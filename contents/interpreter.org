@@ -1,7 +1,7 @@
 #+title: Scheme interpreter
 
 #+CAPTION: grateful dead scheming
-[[http:/images/scheme.png]]
+[[https:/images/scheme.png]]
 
 [[https://github.com/garlic0x1/scheme-interpreter][A naieve implementation of a scheme-like language.]]
 

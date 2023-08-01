@@ -1,7 +1,7 @@
 #+title: Writing web API's in Go
 
 #+CAPTION: a gopher, apparently
-[[http:/images/golang.png]]
+[[https:/images/golang.png]]
 
 * Source code
 [[https://github.com/garlic0x1/example-app][Here is an example of how I would build a JSON API in Go]]
@@ -59,7 +59,7 @@ func GetItems(r *http.Request) (int, any, error) {
 If we make our handler router special types that arent already serializable to JSON, we can return SQLx rows like in this example and it will automagically serialize an array of maps, or return 500 if there is a SQL error.
 * Error handling
 #+CAPTION: >:(
-[[http:/images/errors.png]]
+[[https:/images/errors.png]]
 
 
 Note that while it is commented out in the example code, error messages should be obfuscated in production.  I recommend using an env var or config value to only show the actual error messages in "dev mode", and in prod just return a generic "its broken" message.
