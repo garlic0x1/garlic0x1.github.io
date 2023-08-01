@@ -1,0 +1,65 @@
+#+title: Writing web API's in Go
+
+#+CAPTION: a gopher, apparently
+[[http:/images/golang.png]]
+
+* Source code
+[[https://github.com/garlic0x1/example-app][Here is an example of how I would build a JSON API in Go]]
+* Go web ecosystem
+Go comes with the net/http package which provides a fast and easy to use HTTP server.  There are frameworks like Gin that are nice but I find it to be needlessly verbose when writing a simple JSON API.  It also doesn't come with a declarative tree router like Clojure's Reitit or Rust's Axum, which I like because you can define all the endpoints on a server in one tree that you can view all on your screen at once.
+* Basic routing in Go
+The basic way to do routing in Go is to use Mux (or whatever is still maintained).  It looks like this:
+#+begin_src go
+router := mux.NewRouter()
+router.HandleFunc("/path", func(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode("hi")
+})
+#+end_src
+In this example we have to create a router, then use statements to append endpoints to it.  Also, with this strategy, we are given both eh request, and the response writer in the handler, so instead of simply returning a value in an HTTP response - like in most high level frameworks - we have to write the response manually.
+* What I prefer
+Declaring routes like the above example gets unreadable very fast.  There is no way to quicky visually identify groups of endpoints or middlewares wrapping nodes.
+#+begin_src go
+var router = WrapNode(
+	Middlewares(mw.Auth),
+	"/user", Node(
+		"/info", Leaf("GET", Handler(GetUserInfo)),
+		"/alerts", Leaf(
+			"POST", Handler(PostHook),
+			"GET", Handler(GetHooks),
+			"DELETE", Handler(DeleteHook),
+		),
+		"/notifications", Leaf(
+			"GET", Handler(GetNotifications),
+			"POST", Handler(PostSeenNotification),
+		),
+	)
+)
+#+end_src
+
+While this isn't as pretty as it is in Clojure, we can still visually identify the structure of the endpoints, and we can see that all these endpoints are post-auth because of the mw.Auth middleware.  This syntax evaluates to a tree of Router structs which is traversed recursively to register all the routes.
+* Better handler types
+As I mentioned before, its a lot harder to deal with handlers of the type func(http.ResponseWriter, *http.Request), because then we cant think of HTTP endpoints as functions.  Instead we should make a handler type that takes a Request, and returns values that are then written to a Response.
+
+#+begin_src go
+type BadHandler func(http.RequestWriter, *http.Request)
+type Handler func(*http.Request) (int, any, error)
+type Middleware func(Handler) Handler
+#+end_src
+
+Handlers return a status code, a body, and a possible error (which overrides status code and body to be safe), thus we can create functions where the input is the request, and the output is the response, much easier.
+
+#+begin_src go
+func GetItems(r *http.Request) (int, any, error) {
+	user := r.Context().Value(db.User{}).(db.User)
+	rows, err := db.Sql.Queryx("select * from table where email = ?", user.Email)
+	return 200, rows, err
+}
+#+end_src
+
+If we make our handler router special types that arent already serializable to JSON, we can return SQLx rows like in this example and it will automagically serialize an array of maps, or return 500 if there is a SQL error.
+* Error handling
+#+CAPTION: >:(
+[[http:/images/errors.png]]
+
+
+Note that while it is commented out in the example code, error messages should be obfuscated in production.  I recommend using an env var or config value to only show the actual error messages in "dev mode", and in prod just return a generic "its broken" message.

@@ -1,0 +1,198 @@
+#+OPTIONS: html-style:nil
+#+HTML_HEAD: <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-dark.css">
+#+title: Making an API with Clojure
+
+* Introduction
+** Why Clojure?
+Clojure is a good choice for building an API if you want both a high level of flexibility and a high level of abstraction and composability, you can have concise, easy to read code without many of the limitations that come with things like Flask.
+
+While targeting the JVM might not sound appealing, it does allow us to take advantage of the vast ecosystem of Java code to avoid reinventing the wheel.
+
+Clojure might not be ideal for beginners who are learning Python or similar languages since it follows a very different paradigm.
+** Prerequisite knowledge
+Basic familiarity with Clojure and API patterns are recommended
+* Setting up a basic server
+** Hello World
+This is a simple two-step process
+1. First we must define a ring handler
+
+   A basic ring handler takes a request and returns a response.  Both of these are simply maps with fields like body, status, headers, etc. and can be modified by middleware to accumulate data.
+
+   In this example we will ignore the request and just return a simple response.  Specifying the status is not neccessary for 200.
+#+begin_src clojure
+(defn handler [req]
+  {:status 200 :body "Hello World"})
+#+end_src
+2. Then we can attach the handler to a Jetty server
+
+   Here we just need to specify the port, and {:join? false} means the function runs the server in another thread
+#+begin_src clojure
+(jetty/run-jetty handler {:port 8000 :join? false})
+#+end_src
+** Running in REPL
+This works but when changes are made you will have to restart the JVM to stop the server and start it again with new code.  There are two things we can do to make working with a Clojure backend much easier from the REPL:
+1. Save the server in an atom
+#+begin_src clojure
+(defonce server (atom nil))
+(defn start-server []
+  (reset! server (jetty/run-jetty handler {:port 8000 :join? false})))
+(defn stop-server []
+  (when-some [s @server]
+    (.stop s)
+    (reset! server nil)))
+#+end_src
+    This allows us to restart the server from the REPL, thus loading any new changes without having to restart the whole JVM.
+
+    Using (defonce) also prevents the server atom being redefined when you load your buffer into the REPL.
+2. Indirectly reference the handler
+
+   We can improve on the code above so that we don't even have to restart the server to pick up changes.
+#+begin_src clojure
+ (defn start-server []
+   (reset! server (jetty/run-jetty #'handler {:port 8000 :join? false})))
+#+end_src
+   Adding #' tells the interpreter to execute whatever function is bound to the symbol "handler" at runtime, so if you redefine "handler" the server will route to the new definition.
+
+* Defining routes with Reitit
+** Basic router
+The reitit.ring/router function accepts a vector of routes as its argument.
+#+begin_src clojure
+(reitit.ring/ring-handler
+ (reitit.ring/router
+  [["/" {:get handler}]
+   ["/crud" {:post create-handler
+             :get read-handler
+             :put update-handler
+             :delete delete-handler}]]))
+#+end_src
+It is also easy to nest routes
+#+begin_src clojure
+(reitit.ring/ring-handler
+ (reitit.ring/router
+  [["/" {:get handler}]
+   ["/api"
+    ["/one" {:get handler-one}]
+    ["/two" {:get handler-two}]]]))
+#+end_src
+** Using middleware
+*** Auth middleware
+Ring also lets us wrap routes, or route nodes, with middleware.
+The pattern is similar to what you would use with Go, you can define a middleware as a function that takes a handler as an argument, and returns another handler.
+You can use these to add data to the request map.
+#+begin_src clojure
+(defn wrap-priv [handler]
+  (fn [req]
+    (if (priv? req)
+      (handler req)
+      {:status 403})))
+#+end_src
+Imagine priv? is a function that checks headers for a key to decide if a user is privileged, we pass it the request, and if it returns true, the user is authorized.
+Now we can use this function in the router data to prevent unauthorized use of specified routes.
+#+begin_src clojure
+(reitit.ring/ring-handler
+ (reitit.ring/router
+  [["/" {:get handler}]
+   ["/protected" {:middleware [#(wrap-priv %)]
+                  :post create-handler
+                  :get read-handler
+                  :put update-handler
+                  :delete delete-handler}]]))
+#+end_src
+You can also wrap nodes of nested routes, or you could wrap the expression above to require auth for the entire app.
+
+There is also a suprisingly good ecosystem of middlewares to apply, for example JWT authorization can be implemented in a few lines of code with [[https://github.com/kelveden/ring-jwt][ring-jwt]]
+
+First define your secrets
+#+begin_src clojure
+(def auth-secret
+  {:issuers
+   {"https://provider-url.us.auth0.com/"
+    {:alg :HS256 :secret "******"}}})
+#+end_src
+Then you can use jwt/wrap-jwt to protect routes.  In this example we will wrap the whole application in JWT auth.
+#+begin_src clojure
+(def router (ring/ring-handler (ring/router ["/" {:get handler}])))
+(def app (jwt/wrap-jwt router auth-secret))
+#+end_src
+*** Format negotiation
+Most APIs have to be able to handle JSON as input, but with Clojure, we want to translate that JSON into EDN, which is the native way to represent data.
+
+[[https://github.com/metosin/muuntaja][muuntaja]] provides content negotiation so that any input with Content-Type: application/json will be converted to EDN, and you can also send data as Content-Type: application/edn if you are working with a Clojure(Script) client
+
+Here is a way you can add muuntaja middleware to your app
+#+begin_src clojure
+(def app
+  (ring/ring-handler
+   (ring/router
+    ["/" {:get index}]
+    {:data {:muuntaja m/instance
+            :middleware [muuntaja/format-middleware]}})))
+#+end_src
+
+Now you can access POST data from your handlers like this
+#+begin_src clojure
+(defn handler [req]
+  (let [data (:body-params req)]
+    {:body data}))
+#+end_src
+* Setting up CRUD handlers
+** Basic SQL handlers
+Most useful web apps use a database, for this example we will use Java's JDBC to interact with MySQL.
+
+The simplest way to talk to a database is by passing a specification to each sql operation.  For a MySQL server on localhost your spec will look something like this:
+#+begin_src clojure
+(def db-spec
+  {:host "localhost"
+   :port 3306
+   :dbtype "mysql"
+   :dbname "app"
+   :user "haha"
+   :password "hehe"})
+#+end_src
+
+Here is a basic example of inserting data from a POST request into a sql database.
+#+begin_src clojure
+(def create-item [req]
+  (let [data (:body-params req)]
+    (if-let [input (:input-item data)]
+      (sql/insert! db-spec :table {:column input}))))
+#+end_src
+You will want to use muuntaja as middleware to be able to handle edn, json, and other types of input as if it was all edn with no extra code.
+
+** Using a connection pool
+Using the method above works and is simple, but it is slow because it creates a new database connection for each query.  A common way to improve performance is to use a pool of connections that stay alive.
+
+To do this you can use [[https://github.com/tomekw/hikari-cp][hikari-cp]].  The implementation looks very similar to the one above.
+#+begin_src clojure
+(def db-spec {:adapter            "mysql"
+              :username           "haha"
+              :password           "hehe"
+              :database-name      "app"
+              :server-name        "localhost"
+              :port-number        3306})
+
+(defonce datasource
+  (delay (hik/make-datasource db-spec)))
+
+(defn db-pool [] {:datasource @datasource})
+#+end_src
+This sets up a pool of connections, and when you need to use one, you can call db-pool and use the output just like the previous example.
+#+begin_src clojure
+(sql/execute! (db-pool) ["INSERT INTO table (col1, col2) VALUES (?, ?)" val1 val2])
+#+end_src
+* Tips and tricks
+** Debugging
+To keep the last request/response pair available in the REPL for debugging can be helpful, this can be implemented as a wrapper around the app
+#+BEGIN_SRC clojure
+(defonce last-req  (atom nil))
+(defonce last-resp (atom nil))
+
+(defn wrap-last [handler]
+  (fn [req]
+    (reset! last-req req)
+    (let [resp (handler req)]
+      (reset! last-resp resp)
+      resp)))
+
+(def dbg-app (wrap-last app))
+#+END_SRC

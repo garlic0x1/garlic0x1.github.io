@@ -1,0 +1,87 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>Garlic</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <script src="https://unpkg.com/htmx.org@1.9.4"></script>
+        <link rel="stylesheet" href="/css/styles.css">
+    </head>
+
+    <body>
+        <nav class="pinkbox">
+            <ul>
+                <li><h1>Garlic's sexy website</h1></li>
+                <li><a href="https://github.com/garlic0x1" target="_blank">
+                    Github
+                </a></li>
+                <li><a href="https://gitlab.com/garlic0x1" target="_blank">
+                    Gitlab
+                </a></li>
+                <li><a href="https://x.com/garlic0ne" target="_blank">
+                    Twitter
+                </a></li>
+            </ul>
+        </nav>
+
+
+        <div style="display: flex">
+            <section class="pinkbox side-nav">
+                <ul>
+                    <lt><h2>Content</h2></lt>
+                    <li><a href="/" hx-get="/contents/about.html" hx-target="#article" hx-trigger="load, click">
+                        About
+                    </a></li>
+                    <li><a href="/" hx-get="/contents/clojure-api.html" hx-target="#article">
+                        Writing a Clojure API
+                    </a></li>
+                    <li><a href="/" hx-get="/contents/go-web.html" hx-target="#article">
+                        HTTP Routing in Go
+                    </a></li>
+                </ul>
+                <hr>
+                <ul>
+                    <lt><h2>Projects</h2></lt>
+                    <li><a href="/" hx-get="/contents/interpreter.html" hx-target="#article">
+                        Scheme Interpreter
+                    </a></li>
+                    <li><a href="/" hx-get="/contents/gar-crawl.html" hx-target="#article">
+                        gar-crawl
+                    </a></li>
+                </ul>
+            </section>
+
+            <section id="article" class="articlebox">
+                Read my epic literature
+            </section>
+
+            <section class="blackbox" style="">
+                <!-- go touch grass -->
+                <div style="display: flex;">
+                    <h2 style="width: 100%;">Game of life</h2>
+                    <button onclick="resetBoard()">reset</button>
+                    <button onclick="togglePaused()">pause</button>
+                </div>
+                <hr>
+                <div class="slidecontainer">
+                    <span>Adjust starting density</span>
+                    <input type="range" min="1" max="100" value="42" class="slider" id="rng-weight">
+                </div>
+                <hr>
+                <div  id="life"></div>
+                <p style="color: #E8E6E3;">Pause the game and click on tiles to toggle them</p>
+            </section>
+
+        </div>
+
+
+    </body>
+
+    <footer>
+        <script src="/scripts/life.js"></script>
+    </footer>
+</html>

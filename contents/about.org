@@ -1,0 +1,19 @@
+#+OPTIONS: html-style:nil
+#+HTML_HEAD: <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-dark.css">
+#+title: About
+
+
+* Introduction
+Hi, I am Garlic.  I am a programmer, mostly writing Go and Lisp and making web backends.
+
+#+CAPTION: nice campsite
+#+NAME: fig:bob-marshall
+[[http:/images/bob-marshall.jpg]]
+* Contact
+- Email: garlic1@protonmail.com
+- [[https://github.com/garlic0x1][Github]]
+- [[https://gitlab.com/garlic0x1][Gitlab]]
+- [[https://x.com/garlic0ne][Twitter]]
+
+
+[[http:/images/css3.gif]]

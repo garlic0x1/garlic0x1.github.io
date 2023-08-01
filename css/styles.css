@@ -1,0 +1,176 @@
+ html {
+     background-image: url('/images/background1.webp');
+ }
+
+.pinkbox {
+    border: solid;
+    padding: 10px;
+    margin: 10px;
+    border-width: 4px;
+    background-color: indianred;
+    background-color: #892A2A;
+    border-color: darkslategrey;
+    /* color: darkslategrey; */
+    color: #E8E6E3;
+}
+
+.blackbox {
+    border: solid;
+    padding: 10px;
+    margin: 10px;
+    border-width: 4px;
+    border-color: indianred;
+    border-color: #892A2A;
+    color: #E8E6E3;
+    background-color: darkslategrey;
+}
+
+.blackbox hr {
+    color: #892A2A;
+}
+
+.articlebox {
+    border: solid;
+    padding: 10px;
+    margin: 10px;
+    border-width: 4px;
+    width: 100%;
+    background-color: indianred;
+    background-color: #892A2A;
+    border-color: darkslategrey;
+    overflow-y: scroll;
+    height: 80vh;
+    color: #E8E6E3;
+}
+
+.side-nav {
+    width: 20vw;
+}
+
+.org-src-container {
+    font-size: 16px;
+    border: solid;
+    padding: 12px;
+    margin: 12px;
+    border-width: 4px;
+    color: lightgray;
+    border-color: black;
+
+    /* background-color: black; */
+    background-color: #4a4a4a;
+}
+
+.game-board {
+    background-color: black;
+    color: black;
+    display: inline-block;
+
+    width: 360px;
+
+    border: solid;
+    border-radius: 5px;
+    margin: 12px;
+}
+
+.game-row {
+    padding: 0px;
+    margin: 0px;
+    height: 30px;
+}
+
+.tile {
+    border-color: black;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    padding: 0px;
+    margin: 0px;
+    border: solid;
+    cursor: crosshair;
+}
+
+.live {
+    background-color: firebrick;
+    background-color: #892A2A;
+}
+
+
+.dead {
+    background-color: darkslategrey;
+}
+
+.tile:hover {
+    border-color: firebrick;
+    border-color: #E05959;
+}
+
+nav li {
+    display: inline-block;
+    margin-right: 20px;
+}
+
+nav li h1 {
+    display: inline;
+}
+
+nav {
+    height: 64px;
+}
+
+a {
+    color: darkred;
+    color: #E05959;
+}
+
+button {
+    /* color: #E05959; */
+    color: #E8E6E3;
+    font-size: 18px;
+    background-color: darkslategrey;
+    border-radius: 2px;
+    padding: 10px;
+    margin: 10px;
+    border-color: black;
+    border-color: #892A2A;
+}
+.slidecontainer {
+  width: 100%; /* Width of the outside container */
+  text-align: center;
+}
+
+/* The slider itself */
+.slider {
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 90%; /* Full-width */
+  height: 4px; /* Specified height */
+  margin-top: 18px;
+  background: #d3d3d3; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+  transition: opacity .2s;
+}
+/* Mouse-over effects */
+.slider:hover {
+  opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #04AA6D; /* Green background */
+  background: #E05959;
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #04AA6D; /* Green background */
+  background: #E05959;
+  cursor: pointer; /* Cursor on hover */
+}

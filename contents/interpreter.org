@@ -1,0 +1,86 @@
+#+title: Scheme interpreter
+
+#+CAPTION: grateful dead scheming
+[[http:/images/scheme.png]]
+
+[[https://github.com/garlic0x1/scheme-interpreter][A naieve implementation of a scheme-like language.]]
+
+There is currently no tail call optimization so there is no way to handle infinite loops or large lists.  I would like to try again and make a complete scheme interpreter with concurrency, although there are still things I need to learn to do that.
+
+* Installation
+build from source
+#+begin_src bash
+git clone https://github.com/garlic0x1/scheme-interpreter.git
+cd scheme-interpreter
+cargo install --path .
+scheme-interpreter
+#+end_src
+* Usage
+#+begin_src
+Commands:
+  eval  evaluate a string
+  run   run a file as a program
+  repl  start a REPL
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+#+end_src
+
+* Implemented
+A list of what is done (not exhaustive)
+** special forms:
+- eval
+  #+begin_src clj
+  (eval (quote (println {:hi "world"})))
+  #+end_src
+  evaluate Edn as lisp
+- load
+  #+begin_src clj
+  (load "test.scm")
+  #+end_src
+  Evaluate a file
+- lambda
+  #+begin_src clj
+  (lambda [x] (println x))
+  #+end_src
+  Create an anonymous function
+- def
+  #+begin_src clj
+  (def x "var")
+  #+end_src
+  Define in global namespace
+- if
+  #+begin_src clj
+  (if pred? then else)
+  #+end_src
+  If statement, returns branch.
+  nil, false, 0, "", etc are falsy
+- do
+  #+begin_src clj
+  (do (println "1") (println "2"))
+  #+end_src
+  Evaluate multiple exprs, return last
+- quote
+  #+begin_src clj
+  (quote (1 2 3))
+  #+end_src
+  Return list without evaluating
+** native fns:
+- conj
+- cons
+- car
+- cdr
+- =
+- +
+- *
+- /
+- mod
+- int
+- str
+- type
+- read
+- slurp
+- println
+- dbg

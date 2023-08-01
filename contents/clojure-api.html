@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2023-02-07 Tue 13:58 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Making an API with Clojure</title>
+<meta name="author" content="garlic" />
+<meta name="generator" content="Org Mode" />
+<!-- <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-dark.css"> -->
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Making an API with Clojure</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgc91181a">1. Introduction</a>
+<ul>
+<li><a href="#org68a3097">1.1. Why Clojure?</a></li>
+<li><a href="#org5d9c3e3">1.2. Prerequisite knowledge</a></li>
+</ul>
+</li>
+<li><a href="#org473a88f">2. Setting up a basic server</a>
+<ul>
+<li><a href="#orgd81a617">2.1. Hello World</a></li>
+<li><a href="#org7dfc54b">2.2. Running in REPL</a></li>
+</ul>
+</li>
+<li><a href="#org3a33b67">3. Defining routes with Reitit</a>
+<ul>
+<li><a href="#orgb4388fd">3.1. Basic router</a></li>
+<li><a href="#org4195b2e">3.2. Using middleware</a>
+<ul>
+<li><a href="#orgb26f776">3.2.1. Auth middleware</a></li>
+<li><a href="#orgb630008">3.2.2. Format negotiation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org0b58a79">4. Setting up CRUD handlers</a>
+<ul>
+<li><a href="#org49eb1f5">4.1. Basic SQL handlers</a></li>
+<li><a href="#org9ee6607">4.2. Using a connection pool</a></li>
+</ul>
+</li>
+<li><a href="#orgcd858fd">5. Tips and tricks</a>
+<ul>
+<li><a href="#orgb34a3b1">5.1. Debugging</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgc91181a" class="outline-2">
+<h2 id="orgc91181a"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-org68a3097" class="outline-3">
+<h3 id="org68a3097"><span class="section-number-3">1.1.</span> Why Clojure?</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+Clojure is a good choice for building an API if you want both a high level of flexibility and a high level of abstraction and composability, you can have concise, easy to read code without many of the limitations that come with things like Flask.
+</p>
+
+<p>
+While targeting the JVM might not sound appealing, it does allow us to take advantage of the vast ecosystem of Java code to avoid reinventing the wheel.
+</p>
+
+<p>
+Clojure might not be ideal for beginners who are learning Python or similar languages since it follows a very different paradigm.
+</p>
+</div>
+</div>
+<div id="outline-container-org5d9c3e3" class="outline-3">
+<h3 id="org5d9c3e3"><span class="section-number-3">1.2.</span> Prerequisite knowledge</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+Basic familiarity with Clojure and API patterns are recommended
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org473a88f" class="outline-2">
+<h2 id="org473a88f"><span class="section-number-2">2.</span> Setting up a basic server</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-orgd81a617" class="outline-3">
+<h3 id="orgd81a617"><span class="section-number-3">2.1.</span> Hello World</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+This is a simple two-step process
+</p>
+<ol class="org-ol">
+<li><p>
+First we must define a ring handler
+</p>
+
+<p>
+A basic ring handler takes a request and returns a response.  Both of these are simply maps with fields like body, status, headers, etc. and can be modified by middleware to accumulate data.
+</p>
+
+<p>
+In this example we will ignore the request and just return a simple response.  Specifying the status is not neccessary for 200.
+</p></li>
+</ol>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">handler</span> <span style="color: #FC9354;">[</span>req<span style="color: #FC9354;">]</span>
+  <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:status</span> <span style="color: #FC9354; font-weight: bold;">200</span> <span style="color: #FC9354;">:body</span> <span style="color: #FBE3BF;">"Hello World"</span><span style="color: #FC9354;">}</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<ol class="org-ol">
+<li><p>
+Then we can attach the handler to a Jetty server
+</p>
+
+<p>
+Here we just need to specify the port, and {:join? false} means the function runs the server in another thread
+</p></li>
+</ol>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #E9FDAC;">jetty</span>/run-jetty handler <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:port</span> <span style="color: #FC9354; font-weight: bold;">8000</span> <span style="color: #FC9354;">:join?</span> <span style="color: #FC9354;">false</span><span style="color: #FC9354;">}</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org7dfc54b" class="outline-3">
+<h3 id="org7dfc54b"><span class="section-number-3">2.2.</span> Running in REPL</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+This works but when changes are made you will have to restart the JVM to stop the server and start it again with new code.  There are two things we can do to make working with a Clojure backend much easier from the REPL:
+</p>
+<ol class="org-ol">
+<li>Save the server in an atom</li>
+</ol>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defonce</span> <span style="color: #E9FDAC;">server</span> <span style="color: #FC9354;">(</span>atom <span style="color: #FC9354;">nil</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">start-server</span> <span style="color: #FC9354;">[]</span>
+  <span style="color: #FC9354;">(</span>reset! server <span style="color: #468800;">(</span><span style="color: #E9FDAC;">jetty</span>/run-jetty handler <span style="color: #85DDFF;">{</span><span style="color: #FC9354;">:port</span> <span style="color: #FC9354; font-weight: bold;">8000</span> <span style="color: #FC9354;">:join?</span> <span style="color: #FC9354;">false</span><span style="color: #85DDFF;">}</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">stop-server</span> <span style="color: #FC9354;">[]</span>
+  <span style="color: #FC9354;">(</span><span style="color: #FF5E5E;">when-some</span> <span style="color: #468800;">[</span>s @server<span style="color: #468800;">]</span>
+    <span style="color: #468800;">(</span>.stop s<span style="color: #468800;">)</span>
+    <span style="color: #468800;">(</span>reset! server <span style="color: #FC9354;">nil</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+This allows us to restart the server from the REPL, thus loading any new changes without having to restart the whole JVM.
+</p>
+
+<p>
+Using (defonce) also prevents the server atom being redefined when you load your buffer into the REPL.
+</p>
+<ol class="org-ol">
+<li><p>
+Indirectly reference the handler
+</p>
+
+<p>
+We can improve on the code above so that we don&rsquo;t even have to restart the server to pick up changes.
+</p></li>
+</ol>
+<div class="org-src-container">
+<pre class="src src-clojure"> <span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">start-server</span> <span style="color: #FC9354;">[]</span>
+   <span style="color: #FC9354;">(</span>reset! server <span style="color: #468800;">(</span><span style="color: #E9FDAC;">jetty</span>/run-jetty #'handler <span style="color: #85DDFF;">{</span><span style="color: #FC9354;">:port</span> <span style="color: #FC9354; font-weight: bold;">8000</span> <span style="color: #FC9354;">:join?</span> <span style="color: #FC9354;">false</span><span style="color: #85DDFF;">}</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+Adding #&rsquo; tells the interpreter to execute whatever function is bound to the symbol &ldquo;handler&rdquo; at runtime, so if you redefine &ldquo;handler&rdquo; the server will route to the new definition.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org3a33b67" class="outline-2">
+<h2 id="org3a33b67"><span class="section-number-2">3.</span> Defining routes with Reitit</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-orgb4388fd" class="outline-3">
+<h3 id="orgb4388fd"><span class="section-number-3">3.1.</span> Basic router</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+The reitit.ring/router function accepts a vector of routes as its argument.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #E9FDAC;">reitit.ring</span>/ring-handler
+ <span style="color: #FC9354;">(</span><span style="color: #E9FDAC;">reitit.ring</span>/router
+  <span style="color: #468800;">[</span><span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:get</span> handler<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span>
+   <span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/crud"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:post</span> create-handler
+             <span style="color: #FC9354;">:get</span> read-handler
+             <span style="color: #FC9354;">:put</span> update-handler
+             <span style="color: #FC9354;">:delete</span> delete-handler<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span><span style="color: #468800;">]</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+It is also easy to nest routes
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #E9FDAC;">reitit.ring</span>/ring-handler
+ <span style="color: #FC9354;">(</span><span style="color: #E9FDAC;">reitit.ring</span>/router
+  <span style="color: #468800;">[</span><span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:get</span> handler<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span>
+   <span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/api"</span>
+    <span style="color: #C586C0;">[</span><span style="color: #FBE3BF;">"/one"</span> <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:get</span> handler-one<span style="color: #FC9354;">}</span><span style="color: #C586C0;">]</span>
+    <span style="color: #C586C0;">[</span><span style="color: #FBE3BF;">"/two"</span> <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:get</span> handler-two<span style="color: #FC9354;">}</span><span style="color: #C586C0;">]</span><span style="color: #85DDFF;">]</span><span style="color: #468800;">]</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org4195b2e" class="outline-3">
+<h3 id="org4195b2e"><span class="section-number-3">3.2.</span> Using middleware</h3>
+<div class="outline-text-3" id="text-3-2">
+</div>
+<div id="outline-container-orgb26f776" class="outline-4">
+<h4 id="orgb26f776"><span class="section-number-4">3.2.1.</span> Auth middleware</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+Ring also lets us wrap routes, or route nodes, with middleware.
+The pattern is similar to what you would use with Go, you can define a middleware as a function that takes a handler as an argument, and returns another handler.
+You can use these to add data to the request map.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">wrap-priv</span> <span style="color: #FC9354;">[</span>handler<span style="color: #FC9354;">]</span>
+  <span style="color: #FC9354;">(</span><span style="color: #FF5E5E;">fn</span> <span style="color: #468800;">[</span>req<span style="color: #468800;">]</span>
+    <span style="color: #468800;">(</span><span style="color: #FF5E5E;">if</span> <span style="color: #85DDFF;">(</span>priv? req<span style="color: #85DDFF;">)</span>
+      <span style="color: #85DDFF;">(</span>handler req<span style="color: #85DDFF;">)</span>
+      <span style="color: #85DDFF;">{</span><span style="color: #FC9354;">:status</span> <span style="color: #FC9354; font-weight: bold;">403</span><span style="color: #85DDFF;">}</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+Imagine priv? is a function that checks headers for a key to decide if a user is privileged, we pass it the request, and if it returns true, the user is authorized.
+Now we can use this function in the router data to prevent unauthorized use of specified routes.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #E9FDAC;">reitit.ring</span>/ring-handler
+ <span style="color: #FC9354;">(</span><span style="color: #E9FDAC;">reitit.ring</span>/router
+  <span style="color: #468800;">[</span><span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:get</span> handler<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span>
+   <span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/protected"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:middleware</span> <span style="color: #FC9354;">[</span>#<span style="color: #468800;">(</span>wrap-priv <span style="color: #E9FDAC;">%</span><span style="color: #468800;">)</span><span style="color: #FC9354;">]</span>
+                  <span style="color: #FC9354;">:post</span> create-handler
+                  <span style="color: #FC9354;">:get</span> read-handler
+                  <span style="color: #FC9354;">:put</span> update-handler
+                  <span style="color: #FC9354;">:delete</span> delete-handler<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span><span style="color: #468800;">]</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+You can also wrap nodes of nested routes, or you could wrap the expression above to require auth for the entire app.
+</p>
+
+<p>
+There is also a suprisingly good ecosystem of middlewares to apply, for example JWT authorization can be implemented in a few lines of code with <a href="https://github.com/kelveden/ring-jwt">ring-jwt</a>
+</p>
+
+<p>
+First define your secrets
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">auth-secret</span>
+  <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:issuers</span>
+   <span style="color: #468800;">{</span><span style="color: #FBE3BF;">"https://provider-url.us.auth0.com/"</span>
+    <span style="color: #85DDFF;">{</span><span style="color: #FC9354;">:alg</span> <span style="color: #FC9354;">:HS256</span> <span style="color: #FC9354;">:secret</span> <span style="color: #FBE3BF;">"******"</span><span style="color: #85DDFF;">}</span><span style="color: #468800;">}</span><span style="color: #FC9354;">}</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+Then you can use jwt/wrap-jwt to protect routes.  In this example we will wrap the whole application in JWT auth.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">router</span> <span style="color: #FC9354;">(</span><span style="color: #E9FDAC;">ring</span>/ring-handler <span style="color: #468800;">(</span><span style="color: #E9FDAC;">ring</span>/router <span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:get</span> handler<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">app</span> <span style="color: #FC9354;">(</span><span style="color: #E9FDAC;">jwt</span>/wrap-jwt router auth-secret<span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb630008" class="outline-4">
+<h4 id="orgb630008"><span class="section-number-4">3.2.2.</span> Format negotiation</h4>
+<div class="outline-text-4" id="text-3-2-2">
+<p>
+Most APIs have to be able to handle JSON as input, but with Clojure, we want to translate that JSON into EDN, which is the native way to represent data.
+</p>
+
+<p>
+<a href="https://github.com/metosin/muuntaja">muuntaja</a> provides content negotiation so that any input with Content-Type: application/json will be converted to EDN, and you can also send data as Content-Type: application/edn if you are working with a Clojure(Script) client
+</p>
+
+<p>
+Here is a way you can add muuntaja middleware to your app
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">app</span>
+  <span style="color: #FC9354;">(</span><span style="color: #E9FDAC;">ring</span>/ring-handler
+   <span style="color: #468800;">(</span><span style="color: #E9FDAC;">ring</span>/router
+    <span style="color: #85DDFF;">[</span><span style="color: #FBE3BF;">"/"</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:get</span> index<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">]</span>
+    <span style="color: #85DDFF;">{</span><span style="color: #FC9354;">:data</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:muuntaja</span> <span style="color: #E9FDAC;">m</span>/instance
+            <span style="color: #FC9354;">:middleware</span> <span style="color: #FC9354;">[</span><span style="color: #E9FDAC;">muuntaja</span>/format-middleware<span style="color: #FC9354;">]</span><span style="color: #C586C0;">}</span><span style="color: #85DDFF;">}</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+
+<p>
+Now you can access POST data from your handlers like this
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">handler</span> <span style="color: #FC9354;">[</span>req<span style="color: #FC9354;">]</span>
+  <span style="color: #FC9354;">(</span><span style="color: #FF5E5E;">let</span> <span style="color: #468800;">[</span>data <span style="color: #85DDFF;">(</span><span style="color: #FC9354;">:body-params</span> req<span style="color: #85DDFF;">)</span><span style="color: #468800;">]</span>
+    <span style="color: #468800;">{</span><span style="color: #FC9354;">:body</span> data<span style="color: #468800;">}</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-org0b58a79" class="outline-2">
+<h2 id="org0b58a79"><span class="section-number-2">4.</span> Setting up CRUD handlers</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+<div id="outline-container-org49eb1f5" class="outline-3">
+<h3 id="org49eb1f5"><span class="section-number-3">4.1.</span> Basic SQL handlers</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+Most useful web apps use a database, for this example we will use Java&rsquo;s JDBC to interact with MySQL.
+</p>
+
+<p>
+The simplest way to talk to a database is by passing a specification to each sql operation.  For a MySQL server on localhost your spec will look something like this:
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">db-spec</span>
+  <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:host</span> <span style="color: #FBE3BF;">"localhost"</span>
+   <span style="color: #FC9354;">:port</span> <span style="color: #FC9354; font-weight: bold;">3306</span>
+   <span style="color: #FC9354;">:dbtype</span> <span style="color: #FBE3BF;">"mysql"</span>
+   <span style="color: #FC9354;">:dbname</span> <span style="color: #FBE3BF;">"app"</span>
+   <span style="color: #FC9354;">:user</span> <span style="color: #FBE3BF;">"haha"</span>
+   <span style="color: #FC9354;">:password</span> <span style="color: #FBE3BF;">"hehe"</span><span style="color: #FC9354;">}</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+
+<p>
+Here is a basic example of inserting data from a POST request into a sql database.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">create-item</span> <span style="color: #FC9354;">[</span>req<span style="color: #FC9354;">]</span>
+  <span style="color: #FC9354;">(</span><span style="color: #FF5E5E;">let</span> <span style="color: #468800;">[</span>data <span style="color: #85DDFF;">(</span><span style="color: #FC9354;">:body-params</span> req<span style="color: #85DDFF;">)</span><span style="color: #468800;">]</span>
+    <span style="color: #468800;">(</span><span style="color: #FF5E5E;">if-let</span> <span style="color: #85DDFF;">[</span>input <span style="color: #C586C0;">(</span><span style="color: #FC9354;">:input-item</span> data<span style="color: #C586C0;">)</span><span style="color: #85DDFF;">]</span>
+      <span style="color: #85DDFF;">(</span><span style="color: #E9FDAC;">sql</span>/insert! db-spec <span style="color: #FC9354;">:table</span> <span style="color: #C586C0;">{</span><span style="color: #FC9354;">:column</span> input<span style="color: #C586C0;">}</span><span style="color: #85DDFF;">)</span><span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+You will want to use muuntaja as middleware to be able to handle edn, json, and other types of input as if it was all edn with no extra code.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9ee6607" class="outline-3">
+<h3 id="org9ee6607"><span class="section-number-3">4.2.</span> Using a connection pool</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+Using the method above works and is simple, but it is slow because it creates a new database connection for each query.  A common way to improve performance is to use a pool of connections that stay alive.
+</p>
+
+<p>
+To do this you can use <a href="https://github.com/tomekw/hikari-cp">hikari-cp</a>.  The implementation looks very similar to the one above.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">db-spec</span> <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:adapter</span>            <span style="color: #FBE3BF;">"mysql"</span>
+              <span style="color: #FC9354;">:username</span>           <span style="color: #FBE3BF;">"haha"</span>
+              <span style="color: #FC9354;">:password</span>           <span style="color: #FBE3BF;">"hehe"</span>
+              <span style="color: #FC9354;">:database-name</span>      <span style="color: #FBE3BF;">"app"</span>
+              <span style="color: #FC9354;">:server-name</span>        <span style="color: #FBE3BF;">"localhost"</span>
+              <span style="color: #FC9354;">:port-number</span>        <span style="color: #FC9354; font-weight: bold;">3306</span><span style="color: #FC9354;">}</span><span style="color: #C586C0;">)</span>
+
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defonce</span> <span style="color: #E9FDAC;">datasource</span>
+  <span style="color: #FC9354;">(</span><span style="color: #FF5E5E;">delay</span> <span style="color: #468800;">(</span><span style="color: #E9FDAC;">hik</span>/make-datasource db-spec<span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">db-pool</span> <span style="color: #FC9354;">[]</span> <span style="color: #FC9354;">{</span><span style="color: #FC9354;">:datasource</span> @datasource<span style="color: #FC9354;">}</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+<p>
+This sets up a pool of connections, and when you need to use one, you can call db-pool and use the output just like the previous example.
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #E9FDAC;">sql</span>/execute! <span style="color: #FC9354;">(</span>db-pool<span style="color: #FC9354;">)</span> <span style="color: #FC9354;">[</span><span style="color: #FBE3BF;">"INSERT INTO table (col1, col2) VALUES (?, ?)"</span> val1 val2<span style="color: #FC9354;">]</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgcd858fd" class="outline-2">
+<h2 id="orgcd858fd"><span class="section-number-2">5.</span> Tips and tricks</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+<div id="outline-container-orgb34a3b1" class="outline-3">
+<h3 id="orgb34a3b1"><span class="section-number-3">5.1.</span> Debugging</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+To keep the last request/response pair available in the REPL for debugging can be helpful, this can be implemented as a wrapper around the app
+</p>
+<div class="org-src-container">
+<pre class="src src-clojure"><span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defonce</span> <span style="color: #E9FDAC;">last-req</span>  <span style="color: #FC9354;">(</span>atom <span style="color: #FC9354;">nil</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defonce</span> <span style="color: #E9FDAC;">last-resp</span> <span style="color: #FC9354;">(</span>atom <span style="color: #FC9354;">nil</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">defn</span> <span style="color: #8CDAFF;">wrap-last</span> <span style="color: #FC9354;">[</span>handler<span style="color: #FC9354;">]</span>
+  <span style="color: #FC9354;">(</span><span style="color: #FF5E5E;">fn</span> <span style="color: #468800;">[</span>req<span style="color: #468800;">]</span>
+    <span style="color: #468800;">(</span>reset! last-req req<span style="color: #468800;">)</span>
+    <span style="color: #468800;">(</span><span style="color: #FF5E5E;">let</span> <span style="color: #85DDFF;">[</span>resp <span style="color: #C586C0;">(</span>handler req<span style="color: #C586C0;">)</span><span style="color: #85DDFF;">]</span>
+      <span style="color: #85DDFF;">(</span>reset! last-resp resp<span style="color: #85DDFF;">)</span>
+      resp<span style="color: #468800;">)</span><span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+
+<span style="color: #C586C0;">(</span><span style="color: #FF5E5E;">def</span> <span style="color: #E9FDAC;">dbg-app</span> <span style="color: #FC9354;">(</span>wrap-last app<span style="color: #FC9354;">)</span><span style="color: #C586C0;">)</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: garlic</p>
+<p class="date">Created: 2023-02-07 Tue 13:58</p>
+</div>
+</body>
+</html>
